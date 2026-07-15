@@ -45,6 +45,7 @@
 
 // project includes
 #include "llagent.h"
+#include "llcallbacklist.h" // <FS:Amy> Remove temporary inventory notecard after object transfer
 #include "llpanelobjectinventory.h"
 #include "llpreviewscript.h"
 #include "llresmgr.h"
@@ -59,6 +60,7 @@
 #include "llviewerinventory.h"
 #include "llviewermenu.h" // <FS> Script reset in edit floater
 #include "llviewerobject.h"
+#include "llviewerobjectlist.h" // <FS:Amy> Find the target object after inventory creation callback
 #include "llviewerregion.h"
 #include "llviewerwindow.h"
 #include "llworld.h"
@@ -89,6 +91,7 @@ bool LLPanelContents::postBuild()
     setMouseOpaque(false);
 
     childSetAction("button new script",&LLPanelContents::onClickNewScript, this);
+    childSetAction("button new notecard", &LLPanelContents::onClickNewNotecard, this); // <FS:Amy> New Notecard button in object contents
     childSetAction("button permissions",&LLPanelContents::onClickPermissions, this);
     childSetAction("btn_reset_scripts", &LLPanelContents::onClickResetScripts, this); // <FS> Script reset in edit floater
     childSetAction("button refresh",&LLPanelContents::onClickRefresh, this);
@@ -122,6 +125,7 @@ void LLPanelContents::getState(LLViewerObject *objectp )
     if( !objectp )
     {
         getChildView("button new script")->setEnabled(false);
+        getChildView("button new notecard")->setEnabled(false); // <FS:Amy> New Notecard button in object contents
         getChildView("btn_reset_scripts")->setEnabled(false); // <FS> Script reset in edit floater
         return;
     }
@@ -169,6 +173,7 @@ void LLPanelContents::getState(LLViewerObject *objectp )
     }
 
     getChildView("button new script")->setEnabled(objectIsOK);
+    getChildView("button new notecard")->setEnabled(objectIsOK); // <FS:Amy> New Notecard button in object contents
     getChildView("btn_reset_scripts")->setEnabled(objectIsOK);
     // </FS:PP>
 
@@ -333,6 +338,81 @@ void LLPanelContents::onClickNewScript(void *userdata)
         // editing ASAP.
     }
 }
+
+// <FS:Amy> New Notecard button in object contents
+// static
+void LLPanelContents::onClickNewNotecard(void* userdata)
+{
+    const bool children_ok = true;
+    LLViewerObject* object = LLSelectMgr::getInstance()->getSelection()->getFirstRootObject(children_ok);
+    if (!object)
+    {
+        return;
+    }
+
+// [RLVa:KB] Match the restrictions used by the New Script button.
+    if (rlv_handler_t::isEnabled())
+    {
+        if (gRlvAttachmentLocks.isLockedAttachment(object->getRootEdit()))
+        {
+            return;
+        }
+        if ((gRlvHandler.hasBehaviour(RLV_BHVR_UNSIT)) || (gRlvHandler.hasBehaviour(RLV_BHVR_SITTP)))
+        {
+            if ((isAgentAvatarValid()) && (gAgentAvatarp->isSitting()) && (gAgentAvatarp->getRoot() == object->getRootEdit()))
+            {
+                return;
+            }
+        }
+    }
+// [/RLVa:KB]
+
+    std::string desc;
+    LLViewerAssetType::generateDescriptionFor(LLAssetType::AT_NOTECARD, desc);
+    const LLUUID object_id = object->getID();
+    const LLUUID parent_id = gInventory.findCategoryUUIDForType(LLFolderType::FT_NOTECARD);
+    LLPointer<LLBoostFuncInventoryCallback> callback = new LLBoostFuncInventoryCallback(
+        [object_id](const LLUUID& inv_item)
+        {
+            create_notecard_cb(inv_item);
+
+            LLViewerInventoryItem* item = gInventory.getItem(inv_item);
+            LLViewerObject* target = gObjectList.findObject(object_id);
+            if (!item || !target)
+            {
+                return;
+            }
+
+            LLToolDragAndDrop::dropInventory(
+                target,
+                item,
+                LLToolDragAndDrop::SOURCE_AGENT,
+                gAgentID);
+
+            // The server-created agent item is only a staging item. Give the
+            // task-inventory update time to complete, then remove the duplicate.
+            doAfterInterval(
+                [inv_item]()
+                {
+                    remove_inventory_item(inv_item, nullptr);
+                },
+                2.0f);
+        });
+
+    create_inventory_item(
+        gAgent.getID(),
+        gAgent.getSessionID(),
+        parent_id,
+        LLTransactionID::tnull,
+        "New Note",
+        desc,
+        LLAssetType::AT_NOTECARD,
+        LLInventoryType::IT_NOTECARD,
+        NO_INV_SUBTYPE,
+        LLFloaterPerms::getNextOwnerPerms("Notecards"),
+        callback);
+}
+// </FS:Amy>
 
 // static
 void LLPanelContents::onClickPermissions(void *userdata)

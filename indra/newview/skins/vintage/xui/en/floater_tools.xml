@@ -3313,18 +3313,27 @@ Low ↔ Lwst
             <button
              follows="left|top"
              height="35"
+             label="New Notecard"
+             label_selected="New Notecard"
+             layout="topleft"
+             left_pad="5"
+             name="button new notecard"
+             width="95" />
+            <button
+             follows="left|top"
+             height="35"
              label="Permissions"
              layout="topleft"
              left_pad="5"
              name="button permissions"
              width="80" />
             <button
-             top="8"
+             top="45"
              follows="left|top"
              height="20"
              label="Refresh"
              layout="topleft"
-             left_pad="5"
+             left="10"
              name="button refresh"
              width="90" />
             <button
@@ -3332,14 +3341,15 @@ Low ↔ Lwst
              height="16"
              label="Reset Scripts"
              layout="topleft"
-             top_pad="1"
+             left_pad="5"
+             top_delta="0"
              name="btn_reset_scripts"
              width="90" />
             <filter_editor
              follows="left|top|right"
              label="Enter filter text"
              layout="topleft"
-             top="45"
+             top="66"
              left="10"
              max_length_chars="300"
              highlight_text_field="true"
@@ -3351,11 +3361,11 @@ Low ↔ Lwst
              border_visible="true"
              bevel_style="in"
              follows="left|top|right"
-             height="325"
+             height="304"
              layout="topleft"
              left="10"
              name="contents_inventory"
-             top="70"
+             top="91"
              width="275" />
 		</panel>
         </tab_container>

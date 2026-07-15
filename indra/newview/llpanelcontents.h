@@ -53,6 +53,7 @@ public:
 
 
     static void     onClickNewScript(void*);
+    static void     onClickNewNotecard(void*); // <FS:Amy> New Notecard button in object contents
     static void     onClickPermissions(void*);
     static void     onClickResetScripts(void*); // <FS> Script reset in edit floater
     static void     onClickRefresh(void*);
